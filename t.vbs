@@ -1,1 +1,0 @@
-MsgBox "file is corrupted" & Err.Description, vbExclamation, "Error"
